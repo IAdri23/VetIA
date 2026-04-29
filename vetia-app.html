@@ -462,7 +462,8 @@ function go(name){
 // ============================================
 async function loadPets(){
   try{
-    const{data,error}=await sb.from('mascotas').select('*').order('created_at',{ascending:true});
+    const{data:{user}}=await sb.auth.getUser();
+    const{data,error}=await sb.from('mascotas').select('*').eq('user_id',user?.id).order('created_at',{ascending:true});
     if(error)throw error;
     pets=data.map(p=>({...p,vacunas:[],turnos:[],recordatorios:[],food:null}));
     // Cargar alimentos
@@ -533,7 +534,8 @@ async function savePet(){
   const btn=document.getElementById('btn-save-pet');
   btn.disabled=true;btn.textContent='Guardando...';
   try{
-    const{data,error}=await sb.from('mascotas').insert({nombre:n,especie:document.getElementById('m-especie').value,raza:document.getElementById('m-raza').value,edad:document.getElementById('m-edad').value,peso:parseFloat(document.getElementById('m-peso').value)||null,condicion:document.getElementById('m-condicion').value,alergias:document.getElementById('m-alergias').value}).select().single();
+    const{data:{user}}=await sb.auth.getUser();
+    const{data,error}=await sb.from('mascotas').insert({nombre:n,especie:document.getElementById('m-especie').value,raza:document.getElementById('m-raza').value,edad:document.getElementById('m-edad').value,peso:parseFloat(document.getElementById('m-peso').value)||null,condicion:document.getElementById('m-condicion').value,alergias:document.getElementById('m-alergias').value,user_id:user?.id}).select().single();
     if(error)throw error;
     pets.push({...data,vacunas:[],turnos:[],recordatorios:[],food:null});
     activePet=pets.length-1;
