@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>VetIA — El asistente inteligente de tu mascota</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#0F2D4A;--navy2:#1A4A73;--navy-l:#D6E8F5;--navy-ll:#EBF4FB;
+  --teal:#0A6E6E;--teal2:#0D9B9B;--teal-l:#C8EEEE;--teal-ll:#E8F8F8;
+  --green:#1A6B3A;--green2:#25A05A;--green-l:#C5EDD8;--green-ll:#E8F8EE;
+  --amber:#7A3E0A;--amber-l:#FAE0C0;--amber-ll:#FEF4EA;
+  --coral:#8B1A1A;--coral-l:#F5C5C5;
+  --purple:#5B2C6F;--purple-l:#E4D0EE;--purple-ll:#F5EEF8;
+  --bg:#F0EDE6;--white:#FFFFFF;
+  --txt:#0F1923;--txt2:#3A4A58;--txt3:#7A8A98;
+  --border:#D8D3CA;--border2:#C0BAB0;
+  --r:14px;--r2:10px;--r3:22px;
+  --shadow:0 2px 12px rgba(15,45,74,0.08);--shadow2:0 6px 24px rgba(15,45,74,0.12);
+}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;font-size:14px}
+.nav{background:var(--navy);padding:0 1rem;display:flex;align-items:center;justify-content:space-between;height:62px;position:sticky;top:0;z-index:200;box-shadow:0 2px 12px rgba(15,45,74,0.25)}
+.logo-wrap{display:flex;align-items:center;gap:10px}
+.logo-mark{width:32px;height:32px;background:linear-gradient(135deg,var(--teal2),var(--green2));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.logo-text{font-family:'Fraunces',serif;font-size:20px;font-weight:700;color:#fff;letter-spacing:-0.5px}
+.logo-text span{color:var(--teal2)}
+.logo-tag{font-size:8px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:.1em;margin-top:-2px}
+.nav-tabs{display:flex;gap:1px;background:rgba(255,255,255,0.08);border-radius:12px;padding:3px;border:1px solid rgba(255,255,255,0.1)}
+.nav-tab{background:none;border:none;padding:6px 9px;border-radius:9px;cursor:pointer;font-size:10px;font-weight:700;color:rgba(255,255,255,0.5);font-family:'Plus Jakarta Sans',sans-serif;transition:all .18s;display:flex;align-items:center;gap:3px;white-space:nowrap}
+.nav-tab.active{background:rgba(255,255,255,0.15);color:#fff}
+.nav-tab.biz{color:rgba(13,155,155,0.8)!important}
+.nav-tab.biz.active{background:rgba(13,155,155,0.2);color:var(--teal2)!important}
+.screen{display:none;padding:1rem 1rem 3rem;max-width:680px;margin:0 auto}
+.screen.active{display:block}
+.pet-selector{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin-bottom:1rem;scrollbar-width:none}
+.pet-selector::-webkit-scrollbar{display:none}
+.pet-pill{display:flex;align-items:center;gap:8px;background:var(--white);border:1.5px solid var(--border);border-radius:var(--r3);padding:8px 14px;cursor:pointer;transition:all .18s;white-space:nowrap;flex-shrink:0;box-shadow:var(--shadow)}
+.pet-pill.active{border-color:var(--teal2);background:var(--teal-ll);box-shadow:0 0 0 3px rgba(13,155,155,0.12)}
+.pet-pill-add{background:var(--bg);border:1.5px dashed var(--border2);box-shadow:none}
+.pp-name{font-size:13px;font-weight:700;color:var(--txt)}
+.pp-breed{font-size:11px;color:var(--txt3)}
+.hero-card{background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 55%,var(--teal) 100%);border-radius:var(--r);padding:1.4rem 1.5rem;margin-bottom:1rem;color:#fff;position:relative;overflow:hidden}
+.hero-card::before{content:'';position:absolute;right:-30px;top:-30px;width:130px;height:130px;background:rgba(255,255,255,0.05);border-radius:50%}
+.hero-top{display:flex;align-items:center;gap:12px;margin-bottom:1rem;position:relative;z-index:1}
+.hero-av{width:60px;height:60px;background:rgba(255,255,255,0.15);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:28px;border:2px solid rgba(255,255,255,0.2);flex-shrink:0}
+.hero-name{font-family:'Fraunces',serif;font-size:21px;font-weight:700;color:#fff}
+.hero-breed{font-size:12px;color:rgba(255,255,255,0.7);margin-top:2px}
+.hero-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;position:relative;z-index:1}
+.stat-b{background:rgba(255,255,255,0.12);border-radius:10px;padding:9px;text-align:center;border:1px solid rgba(255,255,255,0.08)}
+.stat-v{font-size:15px;font-weight:800;color:#fff}
+.stat-l{font-size:9px;color:rgba(255,255,255,0.6);margin-top:2px;text-transform:uppercase;letter-spacing:.05em}
+.biz-banner{background:linear-gradient(135deg,var(--navy),var(--teal));border-radius:var(--r);padding:1rem 1.2rem;margin-bottom:1rem;display:flex;align-items:center;gap:12px;cursor:pointer;transition:all .18s;box-shadow:var(--shadow2)}
+.biz-banner:hover{transform:translateY(-1px)}
+.bb-ico{width:42px;height:42px;background:rgba(255,255,255,0.15);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0;border:1px solid rgba(255,255,255,0.2)}
+.bb-title{font-size:13px;font-weight:800;color:#fff}
+.bb-sub{font-size:11px;color:rgba(255,255,255,0.7);margin-top:2px}
+.card{background:var(--white);border-radius:var(--r);border:1px solid var(--border);padding:1.2rem;margin-bottom:1rem;box-shadow:var(--shadow)}
+.card-title{font-size:11px;font-weight:800;color:var(--txt2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:1rem;display:flex;align-items:center;gap:8px}
+.card-accent{width:3px;height:13px;background:linear-gradient(var(--teal2),var(--green2));border-radius:2px;flex-shrink:0}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.form-grid.full{grid-template-columns:1fr}
+.fgroup label{display:block;font-size:11px;font-weight:700;color:var(--txt2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em}
+.fgroup input,.fgroup select{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--r2);font-size:13px;font-family:'Plus Jakarta Sans',sans-serif;background:var(--white)!important;color:var(--txt)!important;outline:none;transition:all .18s;-webkit-appearance:none;appearance:none}
+.fgroup select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%233A4A58' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")!important;background-repeat:no-repeat!important;background-position:right 12px center!important;background-size:12px!important;padding-right:34px;cursor:pointer}
+.fgroup input:focus,.fgroup select:focus{border-color:var(--teal2);box-shadow:0 0 0 3px rgba(13,155,155,0.1)}
+.fgroup input::placeholder{color:var(--txt3)}
+.inline-form{background:var(--navy-ll);border:1.5px solid var(--navy-l);border-radius:var(--r);padding:1.2rem;margin-bottom:1rem;display:none}
+.inline-form.open{display:block}
+.inline-form-title{font-size:13px;font-weight:800;color:var(--navy);margin-bottom:1rem}
+.modal-actions{display:flex;gap:8px;margin-top:1rem}
+.btn-cancel{background:var(--white)!important;color:var(--txt2)!important;border:1.5px solid var(--border);border-radius:var(--r2);padding:11px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;flex:1}
+.btn-confirm{background:var(--navy)!important;color:#fff!important;border:none;border-radius:var(--r2);padding:11px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;flex:1}
+.btn-confirm:disabled{background:var(--border)!important;cursor:not-allowed}
+.btn-add{background:var(--navy)!important;color:#fff!important;border:none;border-radius:var(--r2);padding:9px 16px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;transition:all .15s}
+.btn-add:hover{background:var(--navy2)!important}
+.sec-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;gap:8px}
+.sec-title{font-family:'Fraunces',serif;font-size:18px;font-weight:700;color:var(--txt)}
+.sec-sub{font-size:12px;color:var(--txt3);margin-top:2px}
+.htabs{display:flex;gap:3px;margin-bottom:1rem;background:var(--white);border-radius:var(--r2);padding:4px;border:1px solid var(--border);box-shadow:var(--shadow)}
+.htab{flex:1;text-align:center;padding:9px 4px;border-radius:8px;border:none;background:none;cursor:pointer;font-size:11px;font-weight:700;font-family:inherit;color:var(--txt2)!important;transition:all .18s}
+.htab.active{background:linear-gradient(135deg,var(--navy),var(--teal))!important;color:#fff!important}
+.item-list{display:flex;flex-direction:column;gap:10px}
+.vax-card{background:var(--white);border-radius:var(--r);border:1px solid var(--border);overflow:hidden;box-shadow:var(--shadow)}
+.vax-card-main{display:flex;align-items:center;gap:12px;padding:13px 14px}
+.vax-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.vax-dot.ok{background:#25A05A}.vax-dot.warn{background:#D4AC0D}.vax-dot.due{background:#C0392B}
+.vax-info{flex:1;min-width:0}
+.vax-name{font-size:13px;font-weight:700;color:var(--txt)}
+.vax-sub{font-size:11px;color:var(--txt3);margin-top:2px}
+.badge{font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;white-space:nowrap;flex-shrink:0}
+.badge.ok{background:var(--green-l);color:var(--green)}
+.badge.warn{background:#FEF9C3;color:#7D6608}
+.badge.due{background:var(--coral-l);color:var(--coral)}
+.del-btn{background:none;border:none;cursor:pointer;font-size:13px;color:var(--txt3);padding:5px;border-radius:6px;transition:all .15s;flex-shrink:0}
+.del-btn:hover{background:var(--coral-l);color:var(--coral)}
+.vax-foto-strip{border-top:1px solid var(--border);padding:10px 14px;background:#FAFAF8;display:flex;align-items:center;gap:12px}
+.vax-foto-thumb{width:52px;height:52px;border-radius:8px;object-fit:cover;border:1.5px solid var(--border);flex-shrink:0;cursor:pointer}
+.vax-foto-empty{width:52px;height:52px;border-radius:8px;background:var(--bg);border:1.5px dashed var(--border2);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;cursor:pointer;position:relative}
+.vax-foto-empty input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.vax-foto-info{flex:1}
+.vax-foto-label{font-size:12px;font-weight:700;color:var(--navy)}
+.vax-foto-sub{font-size:11px;color:var(--txt3);margin-top:2px}
+.vax-foto-act{font-size:11px;font-weight:700;color:var(--teal);background:none;border:none;cursor:pointer;font-family:inherit}
+.foto-upload-area{border:2px dashed var(--border2);border-radius:var(--r2);padding:1rem;text-align:center;cursor:pointer;background:var(--white);position:relative;margin-bottom:4px}
+.foto-upload-area.has{border-color:var(--green2);background:var(--green-ll)}
+.foto-upload-area input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.foto-preview-img{width:100%;max-height:120px;object-fit:contain;border-radius:8px}
+.foto-remove{background:var(--coral-l);color:var(--coral);border:none;border-radius:8px;padding:4px 10px;font-size:11px;font-weight:700;font-family:inherit;cursor:pointer;margin-top:6px}
+.item-card{background:var(--white);border-radius:var(--r2);border:1px solid var(--border);padding:12px 14px;display:flex;align-items:center;gap:12px;box-shadow:var(--shadow)}
+.item-info{flex:1;min-width:0}
+.item-name{font-size:13px;font-weight:700;color:var(--txt)}
+.item-sub{font-size:11px;color:var(--txt3);margin-top:2px}
+.appt-date-box{background:var(--navy-ll);border-radius:10px;padding:8px 10px;text-align:center;flex-shrink:0;min-width:46px;border:1px solid var(--navy-l)}
+.appt-day{font-size:18px;font-weight:800;color:var(--navy);line-height:1}
+.appt-mon{font-size:10px;font-weight:700;color:var(--navy2);text-transform:uppercase}
+.appt-time{font-size:12px;font-weight:700;color:var(--txt2);white-space:nowrap}
+.rem-ico{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.rem-ico.food{background:var(--amber-ll)}.rem-ico.med{background:var(--teal-ll)}.rem-ico.walk{background:var(--navy-ll)}
+.toggle-wrap{position:relative;width:40px;height:22px;flex-shrink:0}
+.toggle-wrap input{opacity:0;width:0;height:0;position:absolute}
+.toggle-slider{position:absolute;cursor:pointer;inset:0;background:var(--border2);border-radius:11px;transition:.25s}
+.toggle-slider:before{content:'';position:absolute;height:16px;width:16px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.25s}
+.toggle-wrap input:checked+.toggle-slider{background:var(--teal2)}
+.toggle-wrap input:checked+.toggle-slider:before{transform:translateX(18px)}
+.food-card{background:var(--white);border-radius:var(--r2);border:1.5px solid var(--border);padding:13px 14px;display:flex;align-items:center;gap:12px;box-shadow:var(--shadow)}
+.food-ico{width:42px;height:42px;border-radius:10px;background:var(--teal-ll);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;border:1px solid var(--teal-l)}
+.food-brand-badge{font-size:10px;font-weight:800;padding:3px 9px;border-radius:20px;background:var(--navy-l);color:var(--navy);white-space:nowrap}
+.brand-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+.brand-btn{background:var(--white)!important;border:1.5px solid var(--border);border-radius:var(--r2);padding:10px 6px;cursor:pointer;text-align:center;font-family:inherit;transition:all .18s}
+.brand-btn:hover{border-color:var(--teal2);background:var(--teal-ll)!important}
+.brand-btn.selected{border-color:var(--navy);background:var(--navy-ll)!important}
+.brand-name{font-size:12px;font-weight:700;color:var(--txt)!important;margin-top:4px}
+.brand-ico{font-size:18px}
+.subtype-grid{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.subtype-btn{background:var(--white)!important;border:1.5px solid var(--border);border-radius:20px;padding:6px 12px;cursor:pointer;font-size:12px;font-weight:600;font-family:inherit;color:var(--txt2)!important;transition:all .18s;white-space:nowrap}
+.subtype-btn.selected{background:var(--navy)!important;color:#fff!important;border-color:var(--navy)}
+.calc-result{background:linear-gradient(135deg,var(--navy),var(--teal));border-radius:var(--r2);padding:1.2rem;text-align:center;color:#fff;margin-top:1rem}
+.calc-big{font-family:'Fraunces',serif;font-size:34px;font-weight:700;color:#fff}
+.calc-small{font-size:12px;color:rgba(255,255,255,.8);margin-top:4px}
+.calc-breakdown{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.calc-box{background:rgba(255,255,255,.12);border-radius:8px;padding:8px;text-align:center;border:1px solid rgba(255,255,255,.08)}
+.calc-box-val{font-size:14px;font-weight:700;color:#fff}
+.calc-box-lbl{font-size:10px;color:rgba(255,255,255,.7);margin-top:2px}
+.range-row{display:flex;align-items:center;gap:10px}
+.range-row input[type=range]{flex:1;accent-color:var(--teal2)}
+.range-val{font-size:14px;font-weight:700;color:var(--navy);min-width:44px;text-align:right}
+.chat-top{background:linear-gradient(135deg,var(--navy),var(--navy2));border-radius:var(--r);padding:1.2rem 1.4rem;margin-bottom:1rem;display:flex;align-items:center;gap:14px;box-shadow:var(--shadow2)}
+.chat-av{width:48px;height:48px;background:rgba(255,255,255,0.15);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;border:2px solid rgba(255,255,255,0.2)}
+.chat-top h3{font-family:'Fraunces',serif;font-size:16px;font-weight:700;color:#fff}
+.chat-top p{font-size:12px;color:rgba(255,255,255,.6);margin-top:2px}
+.ctx-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,.15);color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;margin-top:6px;border:1px solid rgba(255,255,255,.1)}
+.disclaimer{background:var(--navy-ll);border:1px solid var(--navy-l);border-left:3px solid var(--teal2);border-radius:var(--r2);padding:10px 14px;font-size:12px;color:var(--navy2);margin-bottom:10px;font-weight:500;line-height:1.5}
+.msgs{background:var(--white);border-radius:var(--r);border:1px solid var(--border);padding:1rem;min-height:260px;max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;margin-bottom:10px;box-shadow:var(--shadow)}
+.msg{max-width:80%;display:flex;flex-direction:column;gap:3px}
+.msg.u{align-self:flex-end;align-items:flex-end}
+.bubble{padding:10px 14px;border-radius:16px;font-size:13px;line-height:1.55}
+.msg.u .bubble{background:linear-gradient(135deg,var(--navy),var(--teal));color:#fff;border-bottom-right-radius:4px}
+.msg.b .bubble{background:#ECEAE6;color:var(--txt);border-bottom-left-radius:4px}
+.msg-t{font-size:10px;color:var(--txt3);padding:0 4px}
+.typing-dots{display:flex;gap:4px;padding:10px 14px;background:#ECEAE6;border-radius:16px;border-bottom-left-radius:4px;align-items:center;width:fit-content}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--txt3);animation:bop 1.2s infinite}
+.dot:nth-child(2){animation-delay:.2s}.dot:nth-child(3){animation-delay:.4s}
+@keyframes bop{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}}
+.quick-btns{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.qbtn{background:var(--white)!important;border:1.5px solid var(--border);border-radius:20px;padding:6px 12px;font-size:12px;font-weight:600;color:var(--txt2)!important;cursor:pointer;font-family:inherit;transition:all .15s}
+.qbtn:hover{border-color:var(--teal2);color:var(--teal)!important;background:var(--teal-ll)!important}
+.chat-row{display:flex;gap:8px}
+.chat-row input{flex:1;padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--r2);font-size:13px;font-family:inherit;background:var(--white)!important;color:var(--txt)!important;outline:none;transition:all .18s}
+.chat-row input:focus{border-color:var(--teal2);box-shadow:0 0 0 3px rgba(13,155,155,0.1)}
+.chat-row input::placeholder{color:var(--txt3)}
+.btn-send{background:linear-gradient(135deg,var(--navy),var(--teal))!important;color:#fff!important;border:none;border-radius:var(--r2);padding:12px 18px;font-size:16px;cursor:pointer;flex-shrink:0}
+.btn-send:disabled{background:var(--border)!important;cursor:not-allowed}
+.map-search{background:var(--white);border-radius:var(--r);border:1px solid var(--border);padding:.7rem 1rem;margin-bottom:1rem;display:flex;align-items:center;gap:10px;box-shadow:var(--shadow)}
+.map-search input{flex:1;border:none;outline:none;font-size:13px;font-family:inherit;background:transparent;color:var(--txt)!important}
+.map-search input::placeholder{color:var(--txt3)}
+.map-search-btn{background:var(--white)!important;color:var(--txt2)!important;border:1px solid var(--border);border-radius:var(--r2);padding:7px 12px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer}
+.filter-tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:1rem;scrollbar-width:none}
+.filter-tabs::-webkit-scrollbar{display:none}
+.ftab{display:flex;align-items:center;gap:5px;padding:7px 12px;border-radius:20px;border:1.5px solid var(--border);background:var(--white)!important;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;color:var(--txt2)!important;transition:all .15s;white-space:nowrap;flex-shrink:0}
+.ftab.active{border-color:var(--navy);background:var(--navy-ll)!important;color:var(--navy)!important}
+.ftab-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.ftab-dot.all{background:#1D9E75}.ftab-dot.vet{background:#0D9B9B}.ftab-dot.shop{background:#BA7517}.ftab-dot.food{background:#639922}.ftab-dot.groom{background:#7F77DD}
+#map{border-radius:var(--r);height:240px;border:1px solid var(--border);overflow:hidden;margin-bottom:1rem;box-shadow:var(--shadow)}
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:1rem}
+.stat-chip{background:var(--white);border-radius:var(--r2);border:1px solid var(--border);padding:10px 8px;text-align:center;box-shadow:var(--shadow)}
+.stat-chip-val{font-size:18px;font-weight:800;color:var(--navy)}
+.stat-chip-lbl{font-size:10px;color:var(--txt3);margin-top:2px}
+.place-list{display:flex;flex-direction:column;gap:8px}
+.place-card-m{background:var(--white);border-radius:var(--r);border:1px solid var(--border);overflow:hidden;cursor:pointer;transition:border-color .15s;box-shadow:var(--shadow)}
+.place-card-m:hover{border-color:var(--teal2)}
+.place-card-m.expanded{border-color:var(--navy)}
+.place-card-main{display:flex;align-items:center;gap:12px;padding:12px 14px}
+.place-type-ico{width:42px;height:42px;border-radius:var(--r2);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;border:1px solid var(--border)}
+.place-type-ico.vet{background:var(--teal-ll)}.place-type-ico.shop{background:var(--amber-ll)}.place-type-ico.food{background:var(--green-ll)}.place-type-ico.groom{background:var(--purple-ll)}
+.place-main-info{flex:1;min-width:0}
+.place-card-name{font-size:13px;font-weight:700;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.place-card-type{font-size:11px;font-weight:600;margin-top:2px}
+.place-card-type.vet{color:var(--teal)}.place-card-type.shop{color:var(--amber)}.place-card-type.food{color:var(--green)}.place-card-type.groom{color:var(--purple)}
+.place-card-addr{font-size:11px;color:var(--txt3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.place-card-right{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0}
+.dist-badge{background:var(--bg);border-radius:8px;padding:3px 8px;font-size:11px;font-weight:700;color:var(--txt2)}
+.hours-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px}
+.hours-badge.has{background:var(--green-l);color:var(--green)}.hours-badge.no{background:var(--bg);color:var(--txt3)}
+.place-details{border-top:1px solid var(--border);padding:12px 14px;background:#FAFAF8;display:none}
+.place-card-m.expanded .place-details{display:block}
+.detail-row{display:flex;align-items:center;gap:10px;margin-bottom:7px;font-size:12px;color:var(--txt2)}
+.detail-ico{font-size:14px;width:20px;text-align:center;flex-shrink:0}
+.detail-actions{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.act-btn{flex:1;min-width:90px;padding:9px 10px;border-radius:var(--r2);border:1px solid var(--border);font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;background:var(--white)!important;color:var(--txt)!important;display:flex;align-items:center;justify-content:center;gap:5px;transition:all .15s}
+.act-btn:hover{background:var(--navy-ll)!important;border-color:var(--navy);color:var(--navy)!important}
+.biz-hero{background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 50%,var(--teal) 100%);border-radius:var(--r);padding:1.8rem 1.5rem;margin-bottom:1rem;color:#fff;text-align:center;position:relative;overflow:hidden}
+.biz-hero::before{content:'';position:absolute;right:-30px;top:-30px;width:120px;height:120px;background:rgba(255,255,255,0.05);border-radius:50%}
+.biz-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.12);color:rgba(255,255,255,0.9);font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;border:1px solid rgba(255,255,255,0.15);margin-bottom:1rem}
+.biz-hero h2{font-family:'Fraunces',serif;font-size:22px;font-weight:700;color:#fff;line-height:1.25;margin-bottom:.6rem;position:relative;z-index:1}
+.biz-hero p{font-size:13px;color:rgba(255,255,255,0.72);line-height:1.6;margin-bottom:1.2rem;position:relative;z-index:1}
+.biz-hero-btn{background:#fff;color:var(--navy);border:none;border-radius:var(--r2);padding:12px 24px;font-size:13px;font-weight:800;font-family:inherit;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,0.15)}
+.biz-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1rem}
+.biz-stat{background:var(--white);border-radius:var(--r2);border:1px solid var(--border);padding:12px;text-align:center;box-shadow:var(--shadow)}
+.biz-stat-val{font-family:'Fraunces',serif;font-size:22px;font-weight:700;color:var(--navy)}
+.biz-stat-lbl{font-size:10px;color:var(--txt3);margin-top:3px}
+.biz-planes{display:flex;flex-direction:column;gap:10px;margin-bottom:1rem}
+.biz-plan{background:var(--white);border-radius:var(--r);border:1.5px solid var(--border);padding:1rem 1.2rem;display:flex;align-items:center;gap:12px;box-shadow:var(--shadow)}
+.biz-plan.featured{border-color:var(--teal2);background:var(--teal-ll)}
+.biz-plan-ico{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.biz-plan-ico.free{background:var(--bg)}.biz-plan-ico.ver{background:var(--teal-ll)}.biz-plan-ico.pre{background:var(--navy-ll)}
+.biz-plan-info{flex:1}
+.biz-plan-name{font-size:14px;font-weight:700;color:var(--navy)}
+.biz-plan-desc{font-size:11px;color:var(--txt3);margin-top:2px}
+.biz-plan-price{font-family:'Fraunces',serif;font-size:18px;font-weight:700;color:var(--navy);white-space:nowrap}
+.biz-plan-price span{font-size:11px;font-weight:400;color:var(--txt3);font-family:inherit}
+.pop-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:var(--teal-l);color:var(--teal);white-space:nowrap}
+.biz-cta{background:var(--navy);border-radius:var(--r);padding:1.2rem;display:flex;align-items:center;gap:12px;margin-bottom:1rem}
+.biz-cta-text{flex:1}
+.biz-cta-text h4{font-size:14px;font-weight:700;color:#fff}
+.biz-cta-text p{font-size:11px;color:rgba(255,255,255,.6);margin-top:3px;line-height:1.4}
+.biz-cta-btn{background:#fff;color:var(--navy);border:none;border-radius:var(--r2);padding:10px 16px;font-size:12px;font-weight:800;font-family:inherit;cursor:pointer;white-space:nowrap;flex-shrink:0}
+.empty-state{text-align:center;padding:2rem 1rem}
+.empty-state .ei{font-size:34px;margin-bottom:10px}
+.empty-state h3{font-size:14px;font-weight:700;color:var(--txt2);margin-bottom:6px}
+.empty-state p{font-size:12px;color:var(--txt3);line-height:1.5}
+.empty-cta{display:inline-flex;align-items:center;gap:8px;background:var(--navy)!important;color:#fff!important;border:none;border-radius:var(--r2);padding:11px 20px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;margin-top:12px}
+.notif{position:fixed;top:72px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;font-weight:700;z-index:1001;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;box-shadow:var(--shadow2)}
+.notif.show{opacity:1}
+.saving-indicator{position:fixed;bottom:20px;right:20px;background:var(--green);color:#fff;padding:8px 16px;border-radius:20px;font-size:12px;font-weight:700;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;display:flex;align-items:center;gap:6px}
+.saving-indicator.show{opacity:1}
+.lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:999;align-items:center;justify-content:center;padding:1rem}
+.lightbox.open{display:flex}
+.lb-inner{background:var(--white);border-radius:var(--r);overflow:hidden;max-width:500px;width:100%;box-shadow:var(--shadow2)}
+.lb-head{padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+.lb-title{font-size:14px;font-weight:700;color:var(--navy)}
+.lb-close{background:var(--bg);border:none;border-radius:8px;width:30px;height:30px;cursor:pointer;font-size:16px;color:var(--txt2);display:flex;align-items:center;justify-content:center}
+.lb-img{width:100%;max-height:400px;object-fit:contain;display:block;background:#f8f8f8}
+.lb-foot{padding:10px 16px;font-size:11px;color:var(--txt3)}
+</style>
+</head>
+<body>
+
+<div class="notif" id="notif"></div>
+<div class="saving-indicator" id="saving">☁️ Guardando...</div>
+
+<!-- LIGHTBOX -->
+<div class="lightbox" id="lightbox" onclick="closeLB()">
+  <div class="lb-inner" onclick="event.stopPropagation()">
+    <div class="lb-head"><div class="lb-title" id="lb-title">Etiqueta de vacuna</div><button class="lb-close" onclick="closeLB()">✕</button></div>
+    <img class="lb-img" id="lb-img" src="" alt="Etiqueta"/>
+    <div class="lb-foot" id="lb-foot"></div>
+  </div>
+</div>
+
+<nav class="nav">
+  <div class="logo-wrap">
+    <svg width="36" height="36" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0"><rect width="120" height="120" rx="28" fill="#1A4A73"/><polyline points="10,62 26,62 33,38 41,74 48,50 56,62 70,62" fill="none" stroke="#0D9B9B" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="82" cy="56" r="9" fill="#0D9B9B"/><circle cx="73" cy="48" r="4.5" fill="#0D9B9B"/><circle cx="82" cy="45" r="4.5" fill="#0D9B9B"/><circle cx="91" cy="48" r="4.5" fill="#0D9B9B"/><circle cx="97" cy="56" r="3.8" fill="#0D9B9B" opacity=".85"/><circle cx="67" cy="56" r="3.8" fill="#0D9B9B" opacity=".85"/></svg>
+    <div><div class="logo-text">Vet<span>IA</span></div><div class="logo-tag">El asistente inteligente de tu mascota</div></div><button onclick="logout()" style="background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.7);border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;font-family:inherit;cursor:pointer;margin-left:auto;white-space:nowrap">Salir</button>
+  </div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="go('home')" id="tab-home">🐶 Mascotas</button>
+    <button class="nav-tab" onclick="go('chat')" id="tab-chat">💬 Chat</button>
+    <button class="nav-tab" onclick="go('health')" id="tab-health">🏥 Salud</button>
+    <button class="nav-tab" onclick="go('map')" id="tab-map">📍 Mapa</button>
+    <button class="nav-tab biz" onclick="go('business')" id="tab-business">🏢 Business</button>
+  </div>
+</nav>
+
+<!-- HOME -->
+<div class="screen active" id="screen-home">
+  <div class="pet-selector" id="psel-home"></div>
+  <div id="home-empty" style="display:none">
+    <div class="empty-state"><div class="ei">🐾</div><h3>¡Bienvenido a VetIA!</h3><p>El asistente inteligente para el cuidado de tus mascotas.</p><button class="empty-cta" onclick="openPetForm()">＋ Agregar mi primera mascota</button></div>
+  </div>
+  <div id="home-content">
+    <div class="biz-banner" onclick="go('business')"><div class="bb-ico">🏢</div><div style="flex:1"><div class="bb-title">¿Tenés una veterinaria o pet shop?</div><div class="bb-sub">Registrá tu negocio en VetIA y llegá a más clientes →</div></div><div style="font-size:18px;color:rgba(255,255,255,0.5)">›</div></div>
+    <div class="hero-card">
+      <div class="hero-top"><div class="hero-av" id="hero-emoji">🐶</div><div><div class="hero-name" id="hero-name">—</div><div class="hero-breed" id="hero-breed">—</div></div></div>
+      <div class="hero-stats"><div class="stat-b"><div class="stat-v" id="h-peso">—</div><div class="stat-l">Peso</div></div><div class="stat-b"><div class="stat-v" id="h-edad">—</div><div class="stat-l">Edad</div></div><div class="stat-b"><div class="stat-v" id="h-cond">—</div><div class="stat-l">Condición</div></div></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><div class="card-accent"></div>🍖 Alimento actual</div>
+      <div id="food-display"><div class="empty-state" style="padding:.6rem 0"><div class="ei" style="font-size:24px">🍽️</div><h3 style="font-size:13px">Sin alimento registrado</h3><p>Registrá qué come tu mascota</p></div></div>
+      <button class="btn-add" style="width:100%;justify-content:center;margin-top:8px" onclick="toggleForm('food-form')">✏️ Registrar alimento</button>
+      <div class="inline-form" id="food-form" style="margin-top:10px;margin-bottom:0">
+        <div class="inline-form-title">🍖 ¿Qué come tu mascota?</div>
+        <div class="fgroup" style="margin-bottom:12px"><label>Marca</label><div class="brand-grid" id="brand-grid"></div><input type="text" id="f-brand-custom" placeholder="O escribí otra marca..."/></div>
+        <div class="fgroup" style="margin-bottom:12px" id="subtype-section"><label id="subtype-label">Línea / Variedad</label><div class="subtype-grid" id="subtype-grid"></div><input type="text" id="f-subtype-custom" placeholder="O escribí la variedad..."/></div>
+        <div class="form-grid"><div class="fgroup"><label>Tipo</label><select id="f-foodtype"><option value="croquetas">Croquetas / Seco</option><option value="humedo">Húmedo / Lata</option><option value="barf">BARF / Crudo</option><option value="casero">Casero / Natural</option><option value="mixto">Mixto</option></select></div><div class="fgroup"><label>Frecuencia</label><select id="f-freq"><option value="1">1 vez al día</option><option value="2" selected>2 veces al día</option><option value="3">3 veces al día</option><option value="libre">Libre acceso</option></select></div></div>
+        <div class="form-grid full"><div class="fgroup"><label>Notas</label><input type="text" id="f-notes" placeholder="Ej: mezclo con agua..."/></div></div>
+        <div class="modal-actions"><button class="btn-cancel" onclick="toggleForm('food-form')">Cancelar</button><button class="btn-confirm" onclick="saveFood()">Guardar</button></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><div class="card-accent"></div>⚖️ Calculadora de porciones</div>
+      <div class="form-grid"><div class="fgroup"><label>Peso (kg)</label><div class="range-row"><input type="range" min="0.5" max="80" step="0.5" id="c-peso" oninput="calcP()"/><span class="range-val" id="c-peso-val">10 kg</span></div></div><div class="fgroup"><label>Actividad</label><select id="c-act" onchange="calcP()"><option value="1.2">Sedentario</option><option value="1.4" selected>Normal</option><option value="1.6">Activo</option><option value="1.8">Muy activo</option></select></div></div>
+      <div class="form-grid"><div class="fgroup"><label>Etapa</label><select id="c-etapa" onchange="calcP()"><option value="1">Adulto</option><option value="1.5">Cachorro</option><option value="0.8">Senior</option><option value="1.2">Gestante</option></select></div><div class="fgroup"><label>Alimento</label><select id="c-tipo" onchange="calcP()"><option value="croquetas">Croquetas</option><option value="humedo">Húmedo</option><option value="barf">BARF</option><option value="casero">Casero</option><option value="mixto">Mixto</option></select></div></div>
+      <div class="calc-result"><div class="calc-big" id="calc-total">—</div><div class="calc-small">gramos por día recomendados</div><div class="calc-breakdown"><div class="calc-box"><div class="calc-box-val" id="calc-m">—</div><div class="calc-box-lbl">Mañana</div></div><div class="calc-box"><div class="calc-box-val" id="calc-md">—</div><div class="calc-box-lbl">Mediodía</div></div><div class="calc-box"><div class="calc-box-val" id="calc-n">—</div><div class="calc-box-lbl">Noche</div></div></div></div>
+    </div>
+  </div>
+  <div class="inline-form" id="pet-form">
+    <div class="inline-form-title">🐾 Nueva mascota</div>
+    <div class="form-grid"><div class="fgroup"><label>Nombre</label><input type="text" id="m-nombre" placeholder="Ej: Luna"/></div><div class="fgroup"><label>Especie</label><select id="m-especie"><option value="perro">🐶 Perro</option><option value="gato">🐱 Gato</option><option value="conejo">🐰 Conejo</option><option value="ave">🐦 Ave</option><option value="hamster">🐹 Hámster</option><option value="otro">🐾 Otro</option></select></div></div>
+    <div class="form-grid"><div class="fgroup"><label>Raza</label><input type="text" id="m-raza" placeholder="Ej: Labrador"/></div><div class="fgroup"><label>Edad</label><input type="text" id="m-edad" placeholder="Ej: 3 años"/></div></div>
+    <div class="form-grid"><div class="fgroup"><label>Peso (kg)</label><input type="number" id="m-peso" placeholder="12" step="0.1"/></div><div class="fgroup"><label>Condición</label><select id="m-condicion"><option>Saludable</option><option>Sobrepeso</option><option>Bajo peso</option><option>Cachorro</option><option>Senior</option><option>Enfermo</option></select></div></div>
+    <div class="form-grid full"><div class="fgroup"><label>Alergias / notas</label><input type="text" id="m-alergias" placeholder="Ej: alérgico al pollo..."/></div></div>
+    <div class="modal-actions"><button class="btn-cancel" onclick="closePetForm()">Cancelar</button><button class="btn-confirm" id="btn-save-pet" onclick="savePet()">Guardar mascota</button></div>
+  </div>
+</div>
+
+<!-- CHAT -->
+<div class="screen" id="screen-chat">
+  <div class="chat-top"><div class="chat-av">🤖</div><div style="flex:1"><h3>Asistente VetIA</h3><p>Recomendaciones personalizadas con IA</p><div class="ctx-badge" id="ctx-badge">🐾 Sin mascota seleccionada</div></div></div>
+  <div class="disclaimer">⚕️ VetIA te da información y consejos generales. Ante cualquier síntoma o duda de salud, consultá siempre a tu veterinario de confianza.</div>
+  <div class="quick-btns">
+    <button class="qbtn" onclick="quickAsk('¿Qué alimento es mejor para mi mascota?')">🥩 Alimentación</button>
+    <button class="qbtn" onclick="quickAsk('¿Qué alimentos son peligrosos?')">⚠️ Peligrosos</button>
+    <button class="qbtn" onclick="quickAsk('¿Cuántas veces al día hay que darle de comer?')">🕐 Frecuencia</button>
+    <button class="qbtn" onclick="quickAsk('¿Cómo sé si está sano?')">❤️ Salud</button>
+    <button class="qbtn" onclick="quickAsk('¿Cuánta agua necesita por día?')">💧 Agua</button>
+  </div>
+  <div class="msgs" id="msgs"><div class="msg b"><div class="bubble">¡Hola! Soy el asistente de VetIA 🐾 Puedo ayudarte con recomendaciones de alimentación, cuidados y bienestar para tu mascota.</div></div></div>
+  <div class="chat-row"><input type="text" id="chat-in" placeholder="Preguntá sobre tu mascota..." onkeydown="if(event.key==='Enter')sendChat()"/><button class="btn-send" id="btn-send" onclick="sendChat()">➤</button></div>
+</div>
+
+<!-- SALUD -->
+<div class="screen" id="screen-health">
+  <div class="pet-selector" id="psel-health"></div>
+  <div id="health-no-pets" style="display:none"><div class="empty-state"><div class="ei">🐾</div><h3>Primero agregá una mascota</h3><p>Andá a Mascotas y cargá tu primera mascota</p><button class="empty-cta" onclick="go('home');openPetForm()">＋ Agregar mascota</button></div></div>
+  <div id="health-content">
+    <div class="htabs"><button class="htab active" id="htab-vax" onclick="setHTab('vax')">💉 Vacunas</button><button class="htab" id="htab-appt" onclick="setHTab('appt')">📅 Turnos</button><button class="htab" id="htab-rem" onclick="setHTab('rem')">⏰ Recordatorios</button></div>
+    <div id="hc-vax"></div>
+    <div id="hc-appt" style="display:none"></div>
+    <div id="hc-rem" style="display:none"></div>
+  </div>
+</div>
+
+<!-- MAPA -->
+<div class="screen" id="screen-map">
+  <div class="map-search"><span style="font-size:16px;color:var(--txt3)">🔍</span><input type="text" id="map-search-in" placeholder="Buscar por nombre o dirección..." oninput="filterBySearch()"/><button class="map-search-btn" onclick="retryLoc()">📍 Mi ubicación</button></div>
+  <div class="filter-tabs">
+    <button class="ftab active" onclick="setMF('all')" id="ftab-all"><span class="ftab-dot all"></span>Todos <span id="cnt-all"></span></button>
+    <button class="ftab" onclick="setMF('vet')" id="ftab-vet"><span class="ftab-dot vet"></span>Veterinarias <span id="cnt-vet"></span></button>
+    <button class="ftab" onclick="setMF('shop')" id="ftab-shop"><span class="ftab-dot shop"></span>Pet Shops <span id="cnt-shop"></span></button>
+    <button class="ftab" onclick="setMF('food')" id="ftab-food"><span class="ftab-dot food"></span>Alimentos <span id="cnt-food"></span></button>
+    <button class="ftab" onclick="setMF('groom')" id="ftab-groom"><span class="ftab-dot groom"></span>Grooming <span id="cnt-groom"></span></button>
+  </div>
+  <div id="map"></div>
+  <div class="stats-row" id="stats-row" style="display:none">
+    <div class="stat-chip"><div class="stat-chip-val" id="s-vet">0</div><div class="stat-chip-lbl">Veterinarias</div></div>
+    <div class="stat-chip"><div class="stat-chip-val" id="s-shop">0</div><div class="stat-chip-lbl">Pet Shops</div></div>
+    <div class="stat-chip"><div class="stat-chip-val" id="s-food">0</div><div class="stat-chip-lbl">Alimentos</div></div>
+    <div class="stat-chip"><div class="stat-chip-val" id="s-groom">0</div><div class="stat-chip-lbl">Grooming</div></div>
+  </div>
+  <div id="map-results"><div style="background:var(--white);border-radius:var(--r);border:1px solid var(--border);padding:2rem;text-align:center"><div style="font-size:28px;margin-bottom:10px">📍</div><div style="font-size:14px;font-weight:700;color:var(--txt2)">Detectando tu ubicación...</div></div></div>
+</div>
+
+<!-- BUSINESS -->
+<div class="screen" id="screen-business">
+  <div class="biz-hero">
+    <div class="biz-badge">🏢 VetIA Business</div>
+    <h2>Llegá a miles de dueños de mascotas en tu zona</h2>
+    <p>Registrá tu veterinaria, pet shop o peluquería y aparecé en el mapa de VetIA.</p>
+    <button class="biz-hero-btn" onclick="notify('🌐 vetia.app/business — ¡Próximamente!')">Registrar mi negocio →</button>
+  </div>
+  <div class="biz-stats">
+    <div class="biz-stat"><div class="biz-stat-val">10k+</div><div class="biz-stat-lbl">Usuarios activos</div></div>
+    <div class="biz-stat"><div class="biz-stat-val">3km</div><div class="biz-stat-lbl">Radio búsqueda</div></div>
+    <div class="biz-stat"><div class="biz-stat-val">4.8★</div><div class="biz-stat-lbl">Valoración</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title"><div class="card-accent"></div>💼 Planes disponibles</div>
+    <div class="biz-planes">
+      <div class="biz-plan"><div class="biz-plan-ico free">🆓</div><div class="biz-plan-info"><div class="biz-plan-name">Básico</div><div class="biz-plan-desc">Pin en el mapa, nombre y dirección</div></div><div class="biz-plan-price">Gratis</div></div>
+      <div class="biz-plan featured"><div class="biz-plan-ico ver">⭐</div><div class="biz-plan-info"><div class="biz-plan-name">Verificado</div><div class="biz-plan-desc">Perfil completo, posición destacada, badge</div></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px"><div class="biz-plan-price">$15 <span>USD/mes</span></div><span class="pop-badge">Más popular</span></div></div>
+      <div class="biz-plan"><div class="biz-plan-ico pre">🚀</div><div class="biz-plan-info"><div class="biz-plan-name">Premium</div><div class="biz-plan-desc">Máxima visibilidad, banners, notificaciones</div></div><div class="biz-plan-price">$35 <span>USD/mes</span></div></div>
+    </div>
+  </div>
+  <div class="biz-cta"><div class="biz-cta-text"><h4>🎯 Precio especial de lanzamiento</h4><p>Los primeros 50 negocios acceden al plan Verificado por $9 USD/mes.</p></div><button class="biz-cta-btn" onclick="notify('🌐 vetia.app/business — ¡Próximamente!')">Aprovechar →</button></div>
+</div>
+
+<script>
+// ============================================
+// SUPABASE CONFIG
+// ============================================
+const SUPABASE_URL = 'https://ctgictsjkwozlubiijan.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_1fAdcF-uwjDdoxnL8YrUSw_-0jlAjah';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// CLOUDFLARE WORKER URL
+const WORKER_URL = 'https://vetia-chat.moyano2394.workers.dev';
+
+// VERIFICAR SESION AL CARGAR
+let currentUser = null;
+sb.auth.getSession().then(({data:{session}})=>{
+  if(!session){
+    window.location.href='vetia-login.html';
+  } else {
+    currentUser = session.user;
+    calcP();
+    loadPets();
+  }
+});
+sb.auth.onAuthStateChange((event,session)=>{
+  if(event==='SIGNED_OUT') window.location.href='vetia-login.html';
+});
+
+const EMOJIS={perro:'🐶',gato:'🐱',conejo:'🐰',ave:'🐦',hamster:'🐹',otro:'🐾'};
+const BRANDS={
+  perro:[{id:'purina-pp',name:'Pro Plan',ico:'🔵',subs:['Puppy','Adult','Senior','Weight Management','Urinary','Small & Toy']},{id:'royal-canin',name:'Royal Canin',ico:'👑',subs:['Maxi Adult','Mini Adult','Medium Adult','Labrador','Golden','Urinary Care']},{id:'hills',name:"Hill's",ico:'🏔️',subs:['Science Diet Adult','Science Diet Puppy','Prescription c/d']},{id:'pedigree',name:'Pedigree',ico:'🐕',subs:['Adulto','Cachorro','Senior','Raza Pequeña']},{id:'dog-chow',name:'Dog Chow',ico:'🍖',subs:['Adulto','Cachorro','Senior','Light']},{id:'otro-perro',name:'Otra marca',ico:'✏️',subs:[]}],
+  gato:[{id:'purina-pp-cat',name:'Pro Plan',ico:'🔵',subs:['Adult Original','Adult Sterilised','Kitten','Urinary','Hairball','Elegant']},{id:'royal-canin-cat',name:'Royal Canin',ico:'👑',subs:['Indoor','Outdoor','Sterilised','Kitten','Senior','British Shorthair','Persian','Urinary Care']},{id:'hills-cat',name:"Hill's",ico:'🏔️',subs:['Science Diet Adult','Science Diet Kitten','Prescription c/d']},{id:'whiskas',name:'Whiskas',ico:'🐱',subs:['Adulto Carne','Adulto Pollo','Adulto Atún','Kitten']},{id:'felix',name:'Felix',ico:'😸',subs:['As Good As It Looks','Sensations','Kitten']},{id:'otro-gato',name:'Otra marca',ico:'✏️',subs:[]}],
+  default:[{id:'otro-gen',name:'Otra marca',ico:'✏️',subs:[]}]
+};
+const TCFG={vet:{label:'Veterinaria',ico:'🏥',color:'#0D9B9B',cls:'vet'},shop:{label:'Pet Shop',ico:'🛒',color:'#BA7517',cls:'shop'},food:{label:'Alimentos',ico:'🥗',color:'#639922',cls:'food'},groom:{label:'Grooming',ico:'✂️',color:'#7F77DD',cls:'groom'}};
+
+let pets=[],activePet=0,chatHistory=[],mapInst=null,userLat=null,userLng=null,allPlaces=[],mapMarkers=[],mapFilter='all',expandedPlace=null,activeHTab='vax',selectedBrand=null,selectedSubtype=null,fotoPreview=null;
+
+// ============================================
+// UTILS
+// ============================================
+function notify(msg){const n=document.getElementById('notif');n.textContent=msg;n.classList.add('show');setTimeout(()=>n.classList.remove('show'),2500);}
+function showSaving(){const s=document.getElementById('saving');s.classList.add('show');setTimeout(()=>s.classList.remove('show'),2000);}
+function toggleForm(id){const f=document.getElementById(id);f.classList.toggle('open');if(f.classList.contains('open'))setTimeout(()=>f.scrollIntoView({behavior:'smooth',block:'nearest'}),50);}
+function openPetForm(){document.getElementById('pet-form').classList.add('open');setTimeout(()=>document.getElementById('pet-form').scrollIntoView({behavior:'smooth',block:'nearest'}),50);}
+function closePetForm(){document.getElementById('pet-form').classList.remove('open');}
+function openLB(src,nombre,fecha){document.getElementById('lb-img').src=src;document.getElementById('lb-title').textContent='📸 Etiqueta · '+nombre;document.getElementById('lb-foot').textContent='Aplicada: '+fecha;document.getElementById('lightbox').classList.add('open');}
+function closeLB(){document.getElementById('lightbox').classList.remove('open');}
+
+function go(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('screen-'+name).classList.add('active');
+  document.getElementById('tab-'+name).classList.add('active');
+  if(name==='map'&&!mapInst)initMap();
+  if(name==='health')renderHealth();
+  if(name==='home')renderHome();
+  if(name==='chat')updateChatBadge();
+}
+
+// ============================================
+// SUPABASE — CARGAR MASCOTAS AL INICIO
+// ============================================
+async function loadPets(){
+  try{
+    const{data,error}=await sb.from('mascotas').select('*').order('created_at',{ascending:true});
+    if(error)throw error;
+    pets=data.map(p=>({...p,vacunas:[],turnos:[],recordatorios:[],food:null}));
+    // Cargar alimentos
+    for(let p of pets){
+      const{data:alim}=await sb.from('alimentos').select('*').eq('mascota_id',p.id).single();
+      if(alim)p.food={brand:alim.marca,subtype:alim.subtipo,type:alim.tipo,freq:alim.frecuencia,notes:alim.notas};
+    }
+    renderHome();updateChatBadge();
+  }catch(e){renderHome();}
+}
+
+async function loadHealthData(pet){
+  try{
+    const[{data:vax},{data:turnos},{data:rems}]=await Promise.all([
+      sb.from('vacunas').select('*').eq('mascota_id',pet.id).order('created_at'),
+      sb.from('turnos').select('*').eq('mascota_id',pet.id).order('fecha'),
+      sb.from('recordatorios').select('*').eq('mascota_id',pet.id).order('created_at'),
+    ]);
+    pet.vacunas=vax||[];
+    pet.turnos=turnos||[];
+    pet.recordatorios=rems||[];
+  }catch(e){}
+}
+
+// ============================================
+// BRANDS
+// ============================================
+function renderBrandGrid(){const p=pets[activePet];const list=BRANDS[p?p.especie:'default']||BRANDS.default;document.getElementById('brand-grid').innerHTML=list.map(b=>`<button class="brand-btn${selectedBrand&&selectedBrand.id===b.id?' selected':''}" onclick="selectBrand('${b.id}')"><div class="brand-ico">${b.ico}</div><div class="brand-name">${b.name}</div></button>`).join('');renderSubtypes();}
+function selectBrand(id){const p=pets[activePet];const list=BRANDS[p?p.especie:'default']||BRANDS.default;selectedBrand=list.find(b=>b.id===id)||null;selectedSubtype=null;document.getElementById('f-brand-custom').value='';renderBrandGrid();}
+function renderSubtypes(){const sec=document.getElementById('subtype-section');if(!selectedBrand||selectedBrand.subs.length===0){sec.style.display='none';return;}sec.style.display='block';document.getElementById('subtype-label').textContent='Línea de '+selectedBrand.name;document.getElementById('subtype-grid').innerHTML=selectedBrand.subs.map(s=>`<button class="subtype-btn${selectedSubtype===s?' selected':''}" onclick="selectSubtype('${s}')">${s}</button>`).join('');}
+function selectSubtype(s){selectedSubtype=s===selectedSubtype?null:s;document.getElementById('f-subtype-custom').value='';renderSubtypes();}
+
+async function saveFood(){
+  const p=pets[activePet];if(!p)return;
+  const cb=document.getElementById('f-brand-custom').value.trim();
+  const cs=document.getElementById('f-subtype-custom').value.trim();
+  const bn=cb||(selectedBrand&&!selectedBrand.id.startsWith('otro')?selectedBrand.name:'');
+  if(!bn){notify('⚠️ Seleccioná o escribí una marca');return;}
+  const foodData={brand:bn,subtype:cs||selectedSubtype||'',type:document.getElementById('f-foodtype').value,freq:document.getElementById('f-freq').value,notes:document.getElementById('f-notes').value};
+  p.food=foodData;
+  showSaving();
+  try{
+    await sb.from('alimentos').upsert({mascota_id:p.id,marca:foodData.brand,subtipo:foodData.subtype,tipo:foodData.type,frecuencia:foodData.freq,notas:foodData.notes});
+  }catch(e){}
+  toggleForm('food-form');selectedBrand=null;selectedSubtype=null;renderFoodDisplay(p);notify('✓ Alimento guardado en la nube ☁️');
+}
+
+function renderFoodDisplay(p){const el=document.getElementById('food-display');if(!p||!p.food){el.innerHTML='<div class="empty-state" style="padding:.6rem 0"><div class="ei" style="font-size:24px">🍽️</div><h3 style="font-size:13px">Sin alimento registrado</h3><p>Registrá qué come tu mascota</p></div>';return;}const f=p.food;const tl={croquetas:'Croquetas / Seco',humedo:'Húmedo / Lata',barf:'BARF / Crudo',casero:'Casero / Natural',mixto:'Mixto'}[f.type]||f.type;const fl={1:'1 vez/día',2:'2 veces/día',3:'3 veces/día',libre:'Libre acceso'}[f.freq]||f.freq;el.innerHTML=`<div class="food-card"><div class="food-ico">🍖</div><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700;color:var(--txt)">${f.brand}${f.subtype?' — '+f.subtype:''}</div><div style="font-size:12px;color:var(--txt3);margin-top:3px">${tl} · ${fl}</div>${f.notes?'<div style="font-size:11px;color:var(--txt3);margin-top:2px">'+f.notes+'</div>':''}</div><span class="food-brand-badge">${f.brand}</span></div>`;}
+
+// ============================================
+// HOME
+// ============================================
+function renderHome(){
+  const sel=document.getElementById('psel-home');
+  if(pets.length===0){sel.innerHTML='';document.getElementById('home-empty').style.display='block';document.getElementById('home-content').style.display='none';return;}
+  document.getElementById('home-empty').style.display='none';document.getElementById('home-content').style.display='block';
+  sel.innerHTML=pets.map((p,i)=>`<div class="pet-pill${i===activePet?' active':''}" onclick="selectPet(${i},true)"><span style="font-size:18px">${EMOJIS[p.especie]||'🐾'}</span><div><div class="pp-name">${p.nombre}</div><div class="pp-breed">${p.raza||p.especie}</div></div></div>`).join('')+`<div class="pet-pill pet-pill-add" onclick="openPetForm()"><span style="font-size:18px">＋</span><div><div class="pp-name" style="color:var(--txt3)">Agregar</div><div class="pp-breed">mascota</div></div></div>`;
+  renderHero();renderFoodDisplay(pets[activePet]);calcP();renderBrandGrid();
+}
+
+function selectPet(i,fh){activePet=i;if(fh)renderHome();else renderHealth();updateChatBadge();}
+
+function renderHero(){const p=pets[activePet];if(!p)return;document.getElementById('hero-emoji').textContent=EMOJIS[p.especie]||'🐾';document.getElementById('hero-name').textContent=p.nombre;document.getElementById('hero-breed').textContent=p.raza?p.raza+' · '+p.especie:p.especie;document.getElementById('h-peso').textContent=p.peso?p.peso+' kg':'—';document.getElementById('h-edad').textContent=p.edad||'—';document.getElementById('h-cond').textContent=p.condicion||'—';if(p.peso){document.getElementById('c-peso').value=p.peso;document.getElementById('c-peso-val').textContent=p.peso+' kg';}}
+
+async function savePet(){
+  const n=document.getElementById('m-nombre').value.trim();
+  if(!n){notify('⚠️ Ingresá un nombre');return;}
+  const btn=document.getElementById('btn-save-pet');
+  btn.disabled=true;btn.textContent='Guardando...';
+  try{
+    const{data,error}=await sb.from('mascotas').insert({nombre:n,especie:document.getElementById('m-especie').value,raza:document.getElementById('m-raza').value,edad:document.getElementById('m-edad').value,peso:parseFloat(document.getElementById('m-peso').value)||null,condicion:document.getElementById('m-condicion').value,alergias:document.getElementById('m-alergias').value}).select().single();
+    if(error)throw error;
+    pets.push({...data,vacunas:[],turnos:[],recordatorios:[],food:null});
+    activePet=pets.length-1;
+    closePetForm();
+    ['m-nombre','m-raza','m-edad','m-peso','m-alergias'].forEach(id=>document.getElementById(id).value='');
+    renderHome();updateChatBadge();
+    notify('✓ '+n+' guardada en la nube ☁️');
+  }catch(e){notify('❌ Error al guardar. Intentá de nuevo.');}
+  btn.disabled=false;btn.textContent='Guardar mascota';
+}
+
+function calcP(){const peso=parseFloat(document.getElementById('c-peso').value)||10;document.getElementById('c-peso-val').textContent=peso+' kg';const act=parseFloat(document.getElementById('c-act').value);const etapa=parseFloat(document.getElementById('c-etapa').value);const tipo=document.getElementById('c-tipo').value;const rer=70*Math.pow(peso,0.75);const mer=rer*act*etapa;const densidad={croquetas:3.5,humedo:1.2,barf:2.0,casero:1.8,mixto:2.5}[tipo];const g=Math.round(mer/densidad/4.184);document.getElementById('calc-total').textContent=g+'g';document.getElementById('calc-m').textContent=Math.round(g*.35)+'g';document.getElementById('calc-md').textContent=Math.round(g*.3)+'g';document.getElementById('calc-n').textContent=Math.round(g*.35)+'g';}
+
+// ============================================
+// HEALTH
+// ============================================
+async function renderHealth(){
+  const sel=document.getElementById('psel-health');
+  if(pets.length===0){sel.innerHTML='';document.getElementById('health-no-pets').style.display='block';document.getElementById('health-content').style.display='none';return;}
+  document.getElementById('health-no-pets').style.display='none';document.getElementById('health-content').style.display='block';
+  sel.innerHTML=pets.map((p,i)=>`<div class="pet-pill${i===activePet?' active':''}" onclick="selectPet(${i},false)"><span style="font-size:18px">${EMOJIS[p.especie]||'🐾'}</span><div><div class="pp-name">${p.nombre}</div><div class="pp-breed">${p.raza||p.especie}</div></div></div>`).join('');
+  await loadHealthData(pets[activePet]);
+  renderHTab();
+}
+
+function setHTab(t){activeHTab=t;document.querySelectorAll('.htab').forEach(b=>b.classList.remove('active'));document.getElementById('htab-'+t).classList.add('active');['vax','appt','rem'].forEach(s=>{document.getElementById('hc-'+s).style.display=s===t?'block':'none';});renderHTab();}
+function renderHTab(){const p=pets[activePet];if(!p)return;if(activeHTab==='vax')renderVax(p);else if(activeHTab==='appt')renderAppt(p);else renderRem(p);}
+
+// VACUNAS
+function renderVax(p){
+  const el=document.getElementById('hc-vax');
+  el.innerHTML=`
+    <div class="sec-head"><div><div class="sec-title">💉 Vacunas</div><div class="sec-sub">${p.vacunas.length} registros · Guardadas en la nube ☁️</div></div><button class="btn-add" onclick="toggleVaxForm()">＋ Agregar</button></div>
+    <div class="inline-form" id="vax-form">
+      <div class="inline-form-title">💉 Nueva vacuna</div>
+      <div class="form-grid full"><div class="fgroup"><label>Nombre</label><input type="text" id="v-nombre" placeholder="Ej: Antirrábica, Séxtuples, Triple felina..."/></div></div>
+      <div class="form-grid"><div class="fgroup"><label>Fecha aplicada</label><input type="date" id="v-fecha"/></div><div class="fgroup"><label>Próxima dosis</label><input type="date" id="v-proxima"/></div></div>
+      <div class="form-grid full"><div class="fgroup"><label>Veterinario / notas</label><input type="text" id="v-notas" placeholder="Opcional"/></div></div>
+      <div class="fgroup" style="margin-bottom:0">
+        <label>📸 Foto de la etiqueta del frasco (opcional)</label>
+        <div class="foto-upload-area" id="foto-area">
+          <input type="file" accept="image/*" id="foto-input" onchange="handleFoto(event)"/>
+          <div id="foto-empty-state"><div style="font-size:28px;margin-bottom:6px">📷</div><div style="font-size:12px;font-weight:600;color:var(--txt3)">Tocá para agregar foto de la etiqueta</div></div>
+          <div id="foto-preview-state" style="display:none"><img id="foto-preview-img" class="foto-preview-img" src="" alt="Preview"/><div style="font-size:11px;font-weight:700;color:var(--green);margin-top:6px;text-align:center">✓ Foto lista</div></div>
+        </div>
+        <button class="foto-remove" id="foto-remove-btn" style="display:none" onclick="removeFoto()">✕ Quitar foto</button>
+      </div>
+      <div class="modal-actions"><button class="btn-cancel" onclick="toggleVaxForm()">Cancelar</button><button class="btn-confirm" id="btn-save-vax" onclick="saveVax()">Guardar vacuna</button></div>
+    </div>
+    ${p.vacunas.length===0?'<div class="empty-state"><div class="ei">💉</div><h3>Sin vacunas registradas</h3><p>Tocá "＋ Agregar" para comenzar</p></div>':
+    '<div class="item-list">'+p.vacunas.map((v,i)=>vaxCardHTML(v,i)).join('')+'</div>'}
+  `;
+}
+
+function vaxCardHTML(v,i){
+  const days=v.proxima_dosis?Math.round((new Date(v.proxima_dosis)-new Date())/86400000):null;
+  const s=days===null?'ok':days<0?'due':days<30?'warn':'ok';
+  const bl=days===null?'Al día':days<0?'Vencida':days<30?'En '+days+'d':'Al día';
+  const fd=v.fecha_aplicada?new Date(v.fecha_aplicada+'T00:00:00').toLocaleDateString('es-AR',{day:'2-digit',month:'long',year:'numeric'}):'—';
+  const fp=v.proxima_dosis?new Date(v.proxima_dosis+'T00:00:00').toLocaleDateString('es-AR',{day:'2-digit',month:'long',year:'numeric'}):'—';
+  const safeNombre=v.nombre.replace(/'/g,"\\'");const safeFd=fd.replace(/'/g,"\\'");
+  return`<div class="vax-card">
+    <div class="vax-card-main">
+      <div class="vax-dot ${s}"></div>
+      <div class="vax-info"><div class="vax-name">${v.nombre}</div><div class="vax-sub">Aplicada: ${fd}${v.notas?' · '+v.notas:''}</div><div class="vax-sub">Próxima: ${fp}</div></div>
+      <div style="display:flex;align-items:center;gap:8px"><span class="badge ${s}">${bl}</span><button class="del-btn" onclick="delVax('${v.id}')">✕</button></div>
+    </div>
+    <div class="vax-foto-strip">
+      ${v.foto_url?`<img class="vax-foto-thumb" src="${v.foto_url}" alt="Etiqueta" onclick="openLB('${v.foto_url}','${safeNombre}','${safeFd}')"/><div class="vax-foto-info"><div class="vax-foto-label">📸 Etiqueta del frasco</div><div class="vax-foto-sub">Tocá para ver completa</div></div><button class="vax-foto-act" onclick="openLB('${v.foto_url}','${safeNombre}','${safeFd}')">Ver →</button>`:`<div class="vax-foto-empty">📷<input type="file" accept="image/*" onchange="addFotoVax(event,'${v.id}')"/></div><div class="vax-foto-info"><div class="vax-foto-label" style="color:var(--txt3)">Sin foto de etiqueta</div><div class="vax-foto-sub">Tocá para agregar la foto del frasco</div></div>`}
+    </div>
+  </div>`;
+}
+
+function toggleVaxForm(){const f=document.getElementById('vax-form');f.classList.toggle('open');if(f.classList.contains('open'))setTimeout(()=>f.scrollIntoView({behavior:'smooth',block:'nearest'}),50);}
+function handleFoto(e){const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=ev=>{fotoPreview=ev.target.result;document.getElementById('foto-empty-state').style.display='none';document.getElementById('foto-preview-state').style.display='block';document.getElementById('foto-preview-img').src=fotoPreview;document.getElementById('foto-area').classList.add('has');document.getElementById('foto-remove-btn').style.display='block';};r.readAsDataURL(file);}
+function removeFoto(){fotoPreview=null;document.getElementById('foto-empty-state').style.display='block';document.getElementById('foto-preview-state').style.display='none';document.getElementById('foto-area').classList.remove('has');document.getElementById('foto-remove-btn').style.display='none';document.getElementById('foto-input').value='';}
+
+async function saveVax(){
+  const p=pets[activePet];if(!p)return;
+  const n=document.getElementById('v-nombre').value.trim();if(!n){notify('⚠️ Ingresá el nombre');return;}
+  const btn=document.getElementById('btn-save-vax');btn.disabled=true;btn.textContent='Guardando...';
+  try{
+    const{data,error}=await sb.from('vacunas').insert({mascota_id:p.id,nombre:n,fecha_aplicada:document.getElementById('v-fecha').value||null,proxima_dosis:document.getElementById('v-proxima').value||null,notas:document.getElementById('v-notas').value,foto_url:fotoPreview}).select().single();
+    if(error)throw error;
+    p.vacunas.push(data);
+    ['v-nombre','v-fecha','v-proxima','v-notas'].forEach(id=>document.getElementById(id).value='');
+    fotoPreview=null;document.getElementById('vax-form').classList.remove('open');
+    renderVax(p);notify('✓ Vacuna guardada en la nube ☁️');
+  }catch(e){notify('❌ Error al guardar. Intentá de nuevo.');}
+  btn.disabled=false;btn.textContent='Guardar vacuna';
+}
+
+async function addFotoVax(e,vaxId){
+  const file=e.target.files[0];if(!file)return;
+  const r=new FileReader();
+  r.onload=async ev=>{
+    showSaving();
+    try{
+      await sb.from('vacunas').update({foto_url:ev.target.result}).eq('id',vaxId);
+      const p=pets[activePet];const v=p.vacunas.find(x=>x.id===vaxId);if(v)v.foto_url=ev.target.result;
+      renderVax(p);notify('✓ Foto guardada en la nube ☁️');
+    }catch(e){notify('❌ Error al guardar la foto.');}
+  };r.readAsDataURL(file);
+}
+
+async function delVax(id){
+  if(!confirm('¿Eliminar esta vacuna?'))return;
+  try{
+    await sb.from('vacunas').delete().eq('id',id);
+    const p=pets[activePet];p.vacunas=p.vacunas.filter(v=>v.id!==id);
+    renderVax(p);notify('Vacuna eliminada');
+  }catch(e){notify('❌ Error al eliminar.');}
+}
+
+// TURNOS
+function renderAppt(p){
+  const el=document.getElementById('hc-appt');
+  el.innerHTML=`<div class="sec-head"><div><div class="sec-title">📅 Turnos</div><div class="sec-sub">${p.turnos.length} agendados</div></div><button class="btn-add" onclick="toggleApptForm()">＋ Nuevo turno</button></div>
+  <div class="inline-form" id="appt-form"><div class="inline-form-title">📅 Nuevo turno</div><div class="form-grid full"><div class="fgroup"><label>Motivo</label><input type="text" id="a-titulo" placeholder="Ej: Control anual..."/></div></div><div class="form-grid"><div class="fgroup"><label>Fecha</label><input type="date" id="a-fecha"/></div><div class="fgroup"><label>Hora</label><input type="time" id="a-hora"/></div></div><div class="form-grid full"><div class="fgroup"><label>Veterinario / clínica</label><input type="text" id="a-vet" placeholder="Opcional"/></div></div><div class="modal-actions"><button class="btn-cancel" onclick="toggleApptForm()">Cancelar</button><button class="btn-confirm" id="btn-save-appt" onclick="saveAppt()">Guardar</button></div></div>
+  ${p.turnos.length===0?'<div class="empty-state"><div class="ei">📅</div><h3>Sin turnos agendados</h3><p>Tocá "＋ Nuevo turno" para agendar</p></div>':
+  '<div class="item-list">'+p.turnos.map((t,i)=>{const d=new Date(t.fecha+'T00:00:00');return`<div class="item-card"><div class="appt-date-box"><div class="appt-day">${d.getDate()}</div><div class="appt-mon">${d.toLocaleString('es',{month:'short'})}</div></div><div class="item-info"><div class="item-name">${t.titulo}</div><div class="item-sub">${t.veterinario||'Sin veterinario especificado'}</div></div><div class="appt-time">${t.hora||''}</div><button class="del-btn" onclick="delAppt('${t.id}')">✕</button></div>`;}).join('')+'</div>'}`;
+}
+function toggleApptForm(){const f=document.getElementById('appt-form');f.classList.toggle('open');if(f.classList.contains('open'))setTimeout(()=>f.scrollIntoView({behavior:'smooth',block:'nearest'}),50);}
+async function saveAppt(){
+  const p=pets[activePet];if(!p)return;
+  const n=document.getElementById('a-titulo').value.trim();if(!n){notify('⚠️ Ingresá el motivo');return;}
+  const btn=document.getElementById('btn-save-appt');btn.disabled=true;
+  try{
+    const{data,error}=await sb.from('turnos').insert({mascota_id:p.id,titulo:n,fecha:document.getElementById('a-fecha').value||null,hora:document.getElementById('a-hora').value||null,veterinario:document.getElementById('a-vet').value}).select().single();
+    if(error)throw error;
+    p.turnos.push(data);['a-titulo','a-fecha','a-hora','a-vet'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('appt-form').classList.remove('open');renderAppt(p);notify('✓ Turno guardado en la nube ☁️');
+  }catch(e){notify('❌ Error al guardar.');}
+  btn.disabled=false;
+}
+async function delAppt(id){if(!confirm('¿Eliminar este turno?'))return;try{await sb.from('turnos').delete().eq('id',id);const p=pets[activePet];p.turnos=p.turnos.filter(t=>t.id!==id);renderAppt(p);notify('Turno eliminado');}catch(e){}}
+
+// RECORDATORIOS
+function renderRem(p){
+  const el=document.getElementById('hc-rem');
+  el.innerHTML=`<div class="sec-head"><div><div class="sec-title">⏰ Recordatorios</div><div class="sec-sub">${p.recordatorios.length} activos</div></div><button class="btn-add" onclick="toggleRemForm()">＋ Agregar</button></div>
+  <div class="inline-form" id="rem-form"><div class="inline-form-title">⏰ Nuevo recordatorio</div><div class="form-grid full"><div class="fgroup"><label>Nombre</label><input type="text" id="r-nombre" placeholder="Ej: Desayuno de Luna..."/></div></div><div class="form-grid"><div class="fgroup"><label>Tipo</label><select id="r-tipo"><option value="food">🍖 Alimentación</option><option value="med">💊 Medicamento</option><option value="walk">🦮 Paseo</option></select></div><div class="fgroup"><label>Hora</label><input type="time" id="r-hora"/></div></div><div class="form-grid full"><div class="fgroup"><label>Notas</label><input type="text" id="r-notas" placeholder="Opcional"/></div></div><div class="modal-actions"><button class="btn-cancel" onclick="toggleRemForm()">Cancelar</button><button class="btn-confirm" id="btn-save-rem" onclick="saveReminder()">Guardar</button></div></div>
+  ${p.recordatorios.length===0?'<div class="empty-state"><div class="ei">⏰</div><h3>Sin recordatorios</h3><p>Tocá "＋ Agregar" para configurar</p></div>':
+  '<div class="item-list">'+p.recordatorios.map((r,i)=>`<div class="item-card"><div class="rem-ico ${r.tipo}">${{food:'🍖',med:'💊',walk:'🦮'}[r.tipo]||'⏰'}</div><div class="item-info"><div class="item-name">${r.nombre}</div><div class="item-sub">${r.hora?r.hora:''}${r.notas?' · '+r.notas:''}</div></div><label class="toggle-wrap"><input type="checkbox" ${r.activo?'checked':''} onchange="toggleRem('${r.id}',this.checked)"/><div class="toggle-slider"></div></label><button class="del-btn" onclick="delRem('${r.id}')">✕</button></div>`).join('')+'</div>'}`;
+}
+function toggleRemForm(){const f=document.getElementById('rem-form');f.classList.toggle('open');if(f.classList.contains('open'))setTimeout(()=>f.scrollIntoView({behavior:'smooth',block:'nearest'}),50);}
+async function saveReminder(){
+  const p=pets[activePet];if(!p)return;
+  const n=document.getElementById('r-nombre').value.trim();if(!n){notify('⚠️ Ingresá un nombre');return;}
+  const btn=document.getElementById('btn-save-rem');btn.disabled=true;
+  try{
+    const{data,error}=await sb.from('recordatorios').insert({mascota_id:p.id,nombre:n,tipo:document.getElementById('r-tipo').value,hora:document.getElementById('r-hora').value||null,notas:document.getElementById('r-notas').value,activo:true}).select().single();
+    if(error)throw error;
+    p.recordatorios.push(data);['r-nombre','r-hora','r-notas'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('rem-form').classList.remove('open');renderRem(p);notify('✓ Recordatorio guardado en la nube ☁️');
+  }catch(e){notify('❌ Error al guardar.');}
+  btn.disabled=false;
+}
+async function toggleRem(id,val){try{await sb.from('recordatorios').update({activo:val}).eq('id',id);}catch(e){}}
+async function delRem(id){if(!confirm('¿Eliminar este recordatorio?'))return;try{await sb.from('recordatorios').delete().eq('id',id);const p=pets[activePet];p.recordatorios=p.recordatorios.filter(r=>r.id!==id);renderRem(p);notify('Recordatorio eliminado');}catch(e){}}
+
+// ============================================
+// CHAT
+// ============================================
+function updateChatBadge(){const p=pets[activePet];const b=document.getElementById('ctx-badge');b.textContent=p?(EMOJIS[p.especie]||'🐾')+' '+p.nombre+(p.raza?' · '+p.raza:''):'🐾 Sin mascota seleccionada';}
+function petCtx(){const p=pets[activePet];if(!p)return '';let ctx=`Mascota: ${p.nombre}, ${p.especie}${p.raza?', '+p.raza:''}, ${p.edad||'edad no especificada'}, ${p.peso?p.peso+' kg':'peso no especificado'}, condición: ${p.condicion}${p.alergias?', notas: '+p.alergias:''}.`;if(p.food)ctx+=` Come: ${p.food.brand}${p.food.subtype?' '+p.food.subtype:''}, ${p.food.type}.`;return ctx;}
+function timeStr(){return new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})}
+function addMsg(txt,who){const msgs=document.getElementById('msgs');const d=document.createElement('div');d.className='msg '+who;d.innerHTML=`<div class="bubble">${txt}</div><div class="msg-t">${timeStr()}</div>`;msgs.appendChild(d);msgs.scrollTop=msgs.scrollHeight;}
+function showTyping(){const msgs=document.getElementById('msgs');const d=document.createElement('div');d.className='msg b';d.id='typing';d.innerHTML='<div class="typing-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>';msgs.appendChild(d);msgs.scrollTop=msgs.scrollHeight;}
+function quickAsk(q){document.getElementById('chat-in').value=q;sendChat();}
+async function sendChat(){
+  const inp=document.getElementById('chat-in');const txt=inp.value.trim();if(!txt)return;
+  inp.value='';addMsg(txt,'u');chatHistory.push({role:'user',content:txt});
+  document.getElementById('btn-send').disabled=true;showTyping();
+  const sys=`Sos un asistente veterinario virtual amigable llamado VetIA. Respondés en español rioplatense (Argentina), de forma cálida, clara y concisa. Das recomendaciones de alimentación, salud y cuidados para mascotas. Siempre aclarás que ante problemas de salud es fundamental consultar al veterinario. Usás emojis con moderación. ${petCtx()}`;
+  try{
+    const r=await fetch(WORKER_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,system:sys,messages:chatHistory})});
+    const d=await r.json();
+    const rep=d.content?.[0]?.text||'No pude responder.';
+    document.getElementById('typing')?.remove();addMsg(rep,'b');chatHistory.push({role:'assistant',content:rep});
+  }catch(e){document.getElementById('typing')?.remove();addMsg('⚠️ El chat se activa cuando configures la API key en el Worker. ¡Ya casi!','b');}
+  document.getElementById('btn-send').disabled=false;inp.focus();
+}
+
+// ============================================
+// MAPA
+// ============================================
+function initMap(){mapInst=L.map('map').setView([-34.6,-58.4],13);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(mapInst);getLoc();}
+function getLoc(){if(!navigator.geolocation){showNoLoc();return;}navigator.geolocation.getCurrentPosition(pos=>{userLat=pos.coords.latitude;userLng=pos.coords.longitude;mapInst.setView([userLat,userLng],14);L.marker([userLat,userLng],{icon:L.divIcon({html:'<div style="background:#0F2D4A;width:14px;height:14px;border-radius:50%;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3)"></div>',iconSize:[14,14],iconAnchor:[7,7]})}).addTo(mapInst).bindPopup('<strong>Tu ubicación</strong>');searchAll();},showNoLoc);}
+function retryLoc(){getLoc();}
+function showNoLoc(){document.getElementById('map-results').innerHTML='<div style="background:var(--white);border-radius:var(--r);border:1px solid var(--border);padding:2rem;text-align:center"><div style="font-size:28px;margin-bottom:10px">⚠️</div><div style="font-size:14px;font-weight:700;color:var(--txt2)">No se pudo obtener ubicación</div></div>';}
+async function searchAll(){document.getElementById('map-results').innerHTML='<div style="background:var(--white);border-radius:var(--r);border:1px solid var(--border);padding:2rem;text-align:center"><div style="font-size:28px;margin-bottom:10px">🔍</div><div style="font-size:14px;font-weight:700;color:var(--txt2)">Buscando lugares cercanos...</div></div>';const Q=[{type:'vet',q:`[out:json];(node["amenity"="veterinary"](around:3000,${userLat},${userLng});way["amenity"="veterinary"](around:3000,${userLat},${userLng}););out center 15;`},{type:'shop',q:`[out:json];(node["shop"="pet"](around:3000,${userLat},${userLng});way["shop"="pet"](around:3000,${userLat},${userLng}););out center 15;`},{type:'food',q:`[out:json];(node["shop"="supermarket"](around:2000,${userLat},${userLng});node["shop"="pet_food"](around:3000,${userLat},${userLng}););out center 15;`},{type:'groom',q:`[out:json];(node["shop"="pet_grooming"](around:3000,${userLat},${userLng}););out center 10;`}];allPlaces=[];try{await Promise.all(Q.map(async({type,q})=>{try{const r=await fetch('https://overpass-api.de/api/interpreter?data='+encodeURIComponent(q));const d=await r.json();(d.elements||[]).forEach(el=>{const lt=el.lat||el.center?.lat,lg=el.lon||el.center?.lon;if(!lt)return;const tags=el.tags||{};const R=6371000,dLa=(lt-userLat)*Math.PI/180,dLg=(lg-userLng)*Math.PI/180;const a=Math.sin(dLa/2)**2+Math.cos(userLat*Math.PI/180)*Math.cos(lt*Math.PI/180)*Math.sin(dLg/2)**2;const dist=Math.round(2*R*Math.asin(Math.sqrt(a)));allPlaces.push({id:el.id,type,name:tags.name||(TCFG[type]?.label||'Lugar'),lat:lt,lng:lg,dist,addr:tags['addr:street']?(tags['addr:street']+(tags['addr:housenumber']?' '+tags['addr:housenumber']:'')):null,phone:tags.phone||tags['contact:phone']||null,hours:tags.opening_hours||null});});}catch(e){}}));const seen=new Set();allPlaces=allPlaces.filter(p=>{if(seen.has(p.id))return false;seen.add(p.id);return true;});allPlaces.sort((a,b)=>a.dist-b.dist);updateMCounts();renderMMarkers();renderMList();document.getElementById('stats-row').style.display='grid';}catch(e){document.getElementById('map-results').innerHTML='<div style="padding:2rem;text-align:center">😔 No se pudieron cargar los lugares</div>';}}
+function updateMCounts(){const cnt={all:allPlaces.length,vet:0,shop:0,food:0,groom:0};allPlaces.forEach(p=>cnt[p.type]++);['all','vet','shop','food','groom'].forEach(k=>{const el=document.getElementById('cnt-'+k);if(el)el.textContent=cnt[k]?'('+cnt[k]+')':'';});document.getElementById('s-vet').textContent=cnt.vet;document.getElementById('s-shop').textContent=cnt.shop;document.getElementById('s-food').textContent=cnt.food;document.getElementById('s-groom').textContent=cnt.groom;}
+function setMF(f){mapFilter=f;document.querySelectorAll('.ftab').forEach(b=>b.classList.remove('active'));document.getElementById('ftab-'+f).classList.add('active');expandedPlace=null;renderMMarkers();renderMList();}
+function filterBySearch(){renderMList();}
+function getMFiltered(){const q=document.getElementById('map-search-in').value.toLowerCase().trim();return allPlaces.filter(p=>{const typeOk=mapFilter==='all'||p.type===mapFilter;const searchOk=!q||(p.name.toLowerCase().includes(q)||(p.addr&&p.addr.toLowerCase().includes(q)));return typeOk&&searchOk;});}
+function renderMMarkers(){mapMarkers.forEach(m=>m.remove());mapMarkers=[];getMFiltered().forEach(p=>{const cfg=TCFG[p.type];const icon=L.divIcon({html:`<div style="background:${cfg.color};width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;border:2.5px solid white;box-shadow:0 2px 6px rgba(0,0,0,.2)">${cfg.ico}</div>`,iconSize:[30,30],iconAnchor:[15,15]});const m=L.marker([p.lat,p.lng],{icon}).addTo(mapInst);m.bindPopup(`<strong>${p.name}</strong><br><span style="font-size:11px;color:#666">${cfg.label} · ${distStr(p.dist)}</span>`);m.on('click',()=>expandMCard(p.id));mapMarkers.push(m);});}
+function renderMList(){const list=getMFiltered();const area=document.getElementById('map-results');if(list.length===0){area.innerHTML='<div style="background:var(--white);border-radius:var(--r);border:1px solid var(--border);padding:2rem;text-align:center"><div style="font-size:28px;margin-bottom:10px">😕</div><div style="font-size:14px;font-weight:700;color:var(--txt2)">No encontramos lugares</div></div>';return;}area.innerHTML='<div style="font-size:11px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">'+list.length+' lugares encontrados · Radio 3km</div><div class="place-list">'+list.map(p=>mCardHTML(p)).join('')+'</div>';}
+function mCardHTML(p){const cfg=TCFG[p.type];const isExp=expandedPlace===p.id;return`<div class="place-card-m${isExp?' expanded':''}" id="mcard-${p.id}" onclick="toggleMCard(${p.id})"><div class="place-card-main"><div class="place-type-ico ${cfg.cls}">${cfg.ico}</div><div class="place-main-info"><div class="place-card-name">${p.name}</div><div class="place-card-type ${cfg.cls}">${cfg.label}</div><div class="place-card-addr">${p.addr||'Dirección no disponible'}</div></div><div class="place-card-right"><span class="dist-badge">${distStr(p.dist)}</span><span class="hours-badge ${p.hours?'has':'no'}">${p.hours?'Con horario':'Sin horario'}</span></div></div>${isExp?`<div class="place-details"><div class="detail-row"><span class="detail-ico">📍</span><span>${p.addr||'No disponible'}</span></div><div class="detail-row"><span class="detail-ico">📞</span>${p.phone?`<a href="tel:${p.phone}" style="color:var(--navy);font-weight:600" onclick="event.stopPropagation()">${p.phone}</a>`:'<span style="color:var(--txt3)">No disponible</span>'}</div><div class="detail-row"><span class="detail-ico">🕐</span><span style="color:${p.hours?'var(--txt)':'var(--txt3)'}">${p.hours||'No disponibles'}</span></div><div class="detail-actions"><button class="act-btn" onclick="openMaps(${p.lat},${p.lng});event.stopPropagation()">🗺️ Cómo llegar</button>${p.phone?`<button class="act-btn" onclick="window.open('tel:${p.phone}');event.stopPropagation()">📞 Llamar</button>`:''}<button class="act-btn" onclick="focusMap(${p.lat},${p.lng});event.stopPropagation()">📍 Ver en mapa</button></div></div>`:''}`;} 
+function toggleMCard(id){expandedPlace=expandedPlace===id?null:id;renderMList();if(expandedPlace){const p=allPlaces.find(x=>x.id===id);if(p)focusMap(p.lat,p.lng);setTimeout(()=>{const el=document.getElementById('mcard-'+id);if(el)el.scrollIntoView({behavior:'smooth',block:'nearest'});},80);}}
+function expandMCard(id){expandedPlace=id;renderMList();setTimeout(()=>{const el=document.getElementById('mcard-'+id);if(el)el.scrollIntoView({behavior:'smooth',block:'center'});},80);}
+function focusMap(lat,lng){mapInst.flyTo([lat,lng],16,{duration:.8});}
+function openMaps(lat,lng){window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`);}
+function distStr(d){return d<1000?d+' m':(d/1000).toFixed(1)+' km';}
+
+// INIT
+calcP();
+loadPets();
+</script>
+</body>
+</html>
